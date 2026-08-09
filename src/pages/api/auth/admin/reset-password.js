@@ -1,7 +1,7 @@
 // src/pages/api/user/auth/reset-password.js
 import Admin from "../../../../models/Admin";
 import connectDB from "../../../../utils/connectDB";
-import bcrypt from "bcrypt";
+import bcryptjs from "bcryptjs";
 
 export default async function handler(req, res) {
   await connectDB();
@@ -25,7 +25,7 @@ export default async function handler(req, res) {
       }
 
       // Hash the new password
-      const hashedPassword = await bcrypt.hash(password, 10);
+      const hashedPassword = await bcryptjs.hash(password, 10);
 
       // Update the admin's password
       admin.password = hashedPassword;

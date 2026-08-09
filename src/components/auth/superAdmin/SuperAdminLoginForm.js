@@ -79,6 +79,11 @@ const SuperAdminLoginForm = ({ role }) => {
       const resultAction = await dispatch(loginSuperAdmin(formValues));
 
       if (loginSuperAdmin.fulfilled.match(resultAction)) {
+        const superAdminData = resultAction.payload;
+        
+        localStorage.setItem('superAdminToken', superAdminData.token);
+        sessionStorage.setItem('superAdminData', JSON.stringify(superAdminData.superAdmin));
+        
         toast({
           title: "Success!",
           description: "Login successful. Redirecting to your dashboard...",
@@ -87,8 +92,8 @@ const SuperAdminLoginForm = ({ role }) => {
           isClosable: true,
           position: "top",
         });
-        router.push(`/${role}/dashboard`);
-
+        
+        router.push('/super-admin/dashboard');
         setFormValues({ emailOrID: "", password: "" });
       } else if (resultAction.meta.requestStatus === "rejected") {
         const { statusCode, message } = resultAction.payload || {};

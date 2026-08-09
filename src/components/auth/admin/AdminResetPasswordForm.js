@@ -2,254 +2,173 @@ import React, { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useRouter } from "next/router";
 import {
-  resetAdminPassword,
+  sendResetCode,
+  verifyResetCodeAndChangePassword,
   selectAuthLoading,
-  selectAuthStatus,
-  selectAuthError,
-  clearStatus,
 } from "../../../store/slices/auth/admin/adminAuthSlice";
 import {
   FormControl,
   FormLabel,
-  InputGroup,
   Input,
-  InputRightElement,
   Button,
   FormErrorMessage,
   useToast,
 } from "@chakra-ui/react";
-import { FaEye, FaEyeSlash } from "react-icons/fa";
 
 const AdminResetPasswordForm = () => {
   const dispatch = useDispatch();
   const router = useRouter();
   const toast = useToast();
-
-  const { role = "user" } = router.query;
-
   const loading = useSelector(selectAuthLoading);
-  const status = useSelector(selectAuthStatus);
-  const error = useSelector(selectAuthError);
 
-  const [formValues, setFormValues] = useState({
-    email: "",
-    password: "",
-    confirmPassword: "",
-  });
-  const [formErrors, setFormErrors] = useState({});
-  const [touched, setTouched] = useState({});
+  const [step, setStep] = useState(1);
+  const [email, setEmail] = useState("");
+  const [code, setCode] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [errors, setErrors] = useState({});
 
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
-  const togglePasswordVisibility = () => setShowPassword((prev) => !prev);
-  const toggleConfirmPasswordVisibility = () =>
-    setShowConfirmPassword((prev) => !prev);
-
-  const validateForm = () => {
-    const errors = {};
-    const { email, password, confirmPassword } = formValues;
-
-    if (!email) {
-      errors.email = "Required";
-    } else if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(email)) {
-      errors.email = "Invalid email address";
-    }
-    if (!password) {
-      errors.password = "Required";
-    } else if (password.length < 8) {
-      errors.password = "Password must be at least 8 characters";
-    }
-    if (password !== confirmPassword) {
-      errors.confirmPassword = "Passwords must match";
-    } else if (!confirmPassword) {
-      errors.confirmPassword = "Required";
-    }
-
-    setFormErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
-
-  const handleSubmit = async (e) => {
+  const handleEmailSubmit = async (e) => {
     e.preventDefault();
-
-    if (!validateForm()) return;
-
+    setErrors({});
+    if (!email) {
+      setErrors({ email: "Email is required" });
+      return;
+    }
     try {
-      const resultAction = await dispatch(resetAdminPassword(formValues));
-
-      if (resetAdminPassword.fulfilled.match(resultAction)) {
+      const result = await dispatch(sendResetCode({ email }));
+      if (sendResetCode.fulfilled.match(result)) {
         toast({
-          title: "Success!",
-          description: "Password reset successful. Redirecting to login...",
+          title: "Code Sent",
+          description: "A reset code has been sent to your email.",
           status: "success",
           duration: 5000,
           isClosable: true,
-          position: "top",
         });
-        router.push(`/login/${role}`);
-
-        setFormValues({
-          email: "",
-          password: "",
-          confirmPassword: "",
-        });
+        setStep(2);
       } else {
-        const errorMessage =
-          resultAction.payload?.message ||
-          resultAction.error?.message ||
-          "An error occurred during the password reset.";
         toast({
-          title: "Error!",
-          description: errorMessage,
+          title: "Error",
+          description: result.payload?.message || "Failed to send code.",
           status: "error",
           duration: 5000,
           isClosable: true,
-          position: "top",
         });
       }
-    } catch (error) {
-      console.error("Unexpected error:", error.message);
+    } catch {
       toast({
-        title: "Unexpected Error",
-        description: "An unexpected error occurred. Please try again.",
+        title: "Error",
+        description: "Unexpected error occurred.",
         status: "error",
         duration: 5000,
         isClosable: true,
-        position: "top",
       });
     }
   };
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormValues((prevValues) => ({
-      ...prevValues,
-      [name]: value,
-    }));
-    setTouched((prevTouched) => ({
-      ...prevTouched,
-      [name]: true,
-    }));
+  const handleCodeAndPasswordSubmit = async (e) => {
+    e.preventDefault();
+    let errs = {};
+    if (!code) errs.code = "Code is required";
+    if (!password) errs.password = "Password is required";
+    if (password.length < 8) errs.password = "Password must be at least 8 characters";
+    if (password !== confirmPassword) errs.confirmPassword = "Passwords must match";
+    setErrors(errs);
+    if (Object.keys(errs).length > 0) return;
+    try {
+      const result = await dispatch(
+        verifyResetCodeAndChangePassword({ email, code, password })
+      );
+      if (verifyResetCodeAndChangePassword.fulfilled.match(result)) {
+        toast({
+          title: "Success",
+          description: "Password reset successful. Redirecting to login...",
+          status: "success",
+          duration: 5000,
+          isClosable: true,
+        });
+        router.push("/login/admin");
+      } else {
+        toast({
+          title: "Error",
+          description: result.payload?.message || "Failed to reset password.",
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+        });
+      }
+    } catch {
+      toast({
+        title: "Error",
+        description: "Unexpected error occurred.",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    }
   };
 
   return (
-    <form onSubmit={handleSubmit}>
-      <FormControl mb={4} isInvalid={formErrors.email && touched.email}>
-        <FormLabel>Email</FormLabel>
-        <Input
-          name="email"
-          type="email"
-          value={formValues.email}
-          onChange={handleChange}
-          onBlur={() => setTouched((prev) => ({ ...prev, email: true }))}
-          color={"white"}
-          _focus={{
-            boxShadow: "0 0 0 2px rgba(255, 255, 255, 0.2)",
-            border: "2px solid",
-            borderColor: "#D9FAD4",
-            transition: "border-color 0.3s ease",
-          }}
-        />
-        <FormErrorMessage>{formErrors.email}</FormErrorMessage>
-      </FormControl>
-
-      {/* Password */}
-      <FormControl mb={4} isInvalid={formErrors.password && touched.password}>
-        <FormLabel>Password</FormLabel>
-        <InputGroup>
+    <form onSubmit={step === 1 ? handleEmailSubmit : handleCodeAndPasswordSubmit}>
+      {step === 1 && (
+        <FormControl mb={4} isInvalid={!!errors.email}>
+          <FormLabel>Email</FormLabel>
           <Input
-            name="password"
-            type={showPassword ? "text" : "password"}
-            value={formValues.password}
-            onChange={handleChange}
-            color={"white"}
-            _focus={{
-              boxShadow: "0 0 0 2px rgba(255, 255, 255, 0.2)",
-              border: "2px solid",
-              borderColor: "#D9FAD4",
-              transition: "border-color 0.3s ease",
-            }}
+            name="email"
+            type="email"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            color="white"
           />
-          <InputRightElement>
-            <Button
-              variant="link"
-              onClick={togglePasswordVisibility}
-              aria-label={showPassword ? "Hide password" : "Show password"}
-              color={"white"}
-              _hover={{
-                bg: "#D9FAD4",
-                color: "gray.800",
-              }}
-              _focus={{
-                bg: "#D9FAD4",
-                color: "gray.800",
-              }}
-            >
-              {showPassword ? <FaEyeSlash /> : <FaEye />}
-            </Button>
-          </InputRightElement>
-        </InputGroup>
-        <FormErrorMessage>{formErrors.password}</FormErrorMessage>
-      </FormControl>
-
-      {/* Confirm Password */}
-      <FormControl
-        mb={4}
-        isInvalid={formErrors.confirmPassword && touched.confirmPassword}
-      >
-        <FormLabel>Confirm Password</FormLabel>
-        <InputGroup>
-          <Input
-            name="confirmPassword"
-            type={showConfirmPassword ? "text" : "password"}
-            value={formValues.confirmPassword}
-            onChange={handleChange}
-            placeholder="Confirm your new password"
-            _placeholder={{
-              color: "white",
-            }}
-            _focus={{
-              boxShadow: "0 0 0 2px rgba(255, 255, 255, 0.2)",
-              border: "2px solid",
-              borderColor: "#D9FAD4",
-              transition: "border-color 0.3s ease",
-            }}
-          />
-          <InputRightElement>
-            <Button
-              variant="link"
-              onClick={toggleConfirmPasswordVisibility}
-              aria-label={
-                showConfirmPassword ? "Hide password" : "Show password"
-              }
-              color={"white"}
-              _hover={{
-                bg: "#D9FAD4",
-                color: "gray.800",
-              }}
-              _focus={{
-                bg: "#D9FAD4",
-                color: "gray.800",
-              }}
-            >
-              {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
-            </Button>
-          </InputRightElement>
-        </InputGroup>
-        <FormErrorMessage>{formErrors.confirmPassword}</FormErrorMessage>
-      </FormControl>
-
+          <FormErrorMessage>{errors.email}</FormErrorMessage>
+        </FormControl>
+      )}
+      {step === 2 && (
+        <>
+          <FormControl mb={4} isInvalid={!!errors.code}>
+            <FormLabel>Reset Code</FormLabel>
+            <Input
+              name="code"
+              value={code}
+              onChange={e => setCode(e.target.value)}
+              color="white"
+            />
+            <FormErrorMessage>{errors.code}</FormErrorMessage>
+          </FormControl>
+          <FormControl mb={4} isInvalid={!!errors.password}>
+            <FormLabel>New Password</FormLabel>
+            <Input
+              name="password"
+              type="password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              color="white"
+            />
+            <FormErrorMessage>{errors.password}</FormErrorMessage>
+          </FormControl>
+          <FormControl mb={4} isInvalid={!!errors.confirmPassword}>
+            <FormLabel>Confirm New Password</FormLabel>
+            <Input
+              name="confirmPassword"
+              type="password"
+              value={confirmPassword}
+              onChange={e => setConfirmPassword(e.target.value)}
+              color="white"
+            />
+            <FormErrorMessage>{errors.confirmPassword}</FormErrorMessage>
+          </FormControl>
+        </>
+      )}
+      
       <Button
         type="submit"
         w="full"
         isLoading={loading}
-        loadingText="Processing..."
         colorScheme="green"
         bg="#D9FAD4"
-        color={"black"}
+        color="black"
       >
-        Reset Password
+        {step === 1 ? "Send Reset Code" : "Reset Password"}
       </Button>
     </form>
   );

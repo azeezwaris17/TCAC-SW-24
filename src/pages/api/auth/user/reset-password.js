@@ -1,7 +1,7 @@
 // src/pages/api/user/auth/reset-password.js
 import User from "../../../../models/User";
 import connectDB from "../../../../utils/connectDB";
-import bcrypt from "bcrypt";
+import bcryptjs from "bcryptjs";
 
 export default async function handler(req, res) {
   await connectDB();
@@ -19,7 +19,7 @@ export default async function handler(req, res) {
         return res.status(404).json({ message: "User not found" });
       }
 
-      user.password = await bcrypt.hash(password, 10);
+      user.password = await bcryptjs.hash(password, 10);
       await user.save();
 
       res.status(200).json({ message: "Password reset successful" });

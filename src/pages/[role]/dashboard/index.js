@@ -1,8 +1,9 @@
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/router";
 import { useSelector, useDispatch } from "react-redux";
 import { useToast } from "@chakra-ui/react";
 import DashboardLayout from "../../../layouts/dashboard/DashboardLayout";
+import withAuth from "../../../components/auth/withAuth";
 import {
   selectIsUserAuthenticated,
   selectUserToken,
@@ -25,9 +26,9 @@ import {
 const DashboardPage = () => {
   const router = useRouter();
   const { role } = router.query;
-
   const toast = useToast();
   const dispatch = useDispatch();
+  const [isClient, setIsClient] = useState(false);
 
   // Memoized selector map for role-based authentication
   const selectors = useMemo(() => ({
@@ -51,6 +52,10 @@ const DashboardPage = () => {
     },
   }), []);
 
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
   // Default to 'user' if the role is undefined or invalid
   const currentRole = selectors[role] ? role : "user";
 
@@ -62,41 +67,13 @@ const DashboardPage = () => {
   const authToken = useSelector(token);
   const accountData = useSelector(accountInfo);
 
-  // Debugging logs to track the flow
-  // console.log("Current role:", currentRole);
-  // console.log("Is Authenticated (from selector):", isAuth);
-  // console.log("Auth Token (from selector):", authToken);
-  // console.log("Account data (from selector):", accountData);
-
   useEffect(() => {
-    // console.log("Effect triggered");
-    // console.log("isAuth:", isAuth);
-    // console.log("authToken:", authToken);
-    // console.log("accountData:", accountData);
-
-    // Redirect if the user is not authenticated
-    if (!isAuth) {
-      toast({
-        title: "Not authenticated",
-        description: "You need to log in to access the dashboard.",
-        status: "warning",
-        duration: 5000,
-        isClosable: true,
-        position: "top",
-      });
-      router.push(`/login/${currentRole}`);
-    } else if (accountData && accountData.role) {
+    if (isClient && accountData && accountData.role) {
       console.log("User role:", accountData.role);
-    
-    } else {
-      console.log("Account data or role is undefined");  // Handle this edge case
-
     }
-  }, [isAuth, authToken, accountData, currentRole, router, toast]);
+  }, [accountData, isClient]);
 
-  // Return null if not authenticated or invalid role
-  if (!isAuth || !selectors[currentRole]) {
-    console.log("Not authenticated or invalid role");
+  if (!isClient) {
     return null;
   }
 
@@ -108,9 +85,11 @@ const DashboardPage = () => {
       logout={() => {
         console.log("Logging out");
         dispatch(logout());
+        sessionStorage.removeItem('userData');
+        router.push(`/login/${currentRole}`);
       }}
     />
   );
 };
 
-export default DashboardPage;
+export default withAuth(DashboardPage);

@@ -1,6 +1,6 @@
 import connectDB from "../../../../utils/connectDB";
 import SuperAdmin from "../../../../models/SuperAdmin";
-import bcrypt from "bcrypt";
+import bcryptjs from "bcryptjs";
 import jwt from "jsonwebtoken";
 
 export default async function handler(req, res) {
@@ -32,7 +32,7 @@ export default async function handler(req, res) {
       }
 
       // Verify the password
-      const isPasswordValid = await bcrypt.compare(
+      const isPasswordValid = await bcryptjs.compare(
         password,
         superAdminData.password
       );

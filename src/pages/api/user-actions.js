@@ -1,4 +1,3 @@
-// pages/api/user-actions.js
 import connectDB from "../../utils/connectDB";
 import User from "../../models/User";
 
@@ -8,11 +7,7 @@ export default async function handler(req, res) {
   switch (req.method) {
     case "GET":
       try {
-        // const users = await User.find({ role: "user" });
         const users = await User.find({});
-
-        // console.log ("registered users:", users)
-
         res.status(200).json({ success: true, data: users });
       } catch (error) {
         res.status(400).json({ success: false, message: error.message });
@@ -42,8 +37,26 @@ export default async function handler(req, res) {
       }
       break;
 
+    case "DELETE":
+      try {
+        const { id } = req.body;
+        if (!id) {
+          return res.status(400).json({ success: false, message: "User ID is required" });
+        }
+
+        const deletedUser = await User.findByIdAndDelete(id);
+        if (!deletedUser) {
+          return res.status(404).json({ success: false, message: "User not found" });
+        }
+
+        res.status(200).json({ success: true, message: "User deleted successfully" });
+      } catch (error) {
+        res.status(400).json({ success: false, message: error.message });
+      }
+      break;
+
     default:
-      res.status(400).json({ success: false, message: "Method not allowed" });
+      res.status(405).json({ success: false, message: "Method not allowed" });
       break;
   }
 }

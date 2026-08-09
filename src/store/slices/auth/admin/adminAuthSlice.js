@@ -64,11 +64,39 @@ export const resetAdminPassword = createAsyncThunk(
   }
 );
 
+export const sendResetCode = createAsyncThunk(
+  'admin/sendResetCode',
+  async ({ email }, thunkAPI) => {
+    try {
+      const response = await axios.post('/api/auth/admin/send-reset-code', { email });
+      return response.data;
+    } catch (error) {
+      const statusCode = error.response?.status || 500;
+      const errorMessage = error.response?.data?.message || 'Failed to send reset code';
+      return thunkAPI.rejectWithValue({ message: errorMessage, statusCode });
+    }
+  }
+);
+
+export const verifyResetCodeAndChangePassword = createAsyncThunk(
+  'admin/verifyResetCodeAndChangePassword',
+  async ({ email, code, password }, thunkAPI) => {
+    try {
+      const response = await axios.post('/api/auth/admin/verify-reset-code', { email, code, password });
+      return response.data;
+    } catch (error) {
+      const statusCode = error.response?.status || 500;
+      const errorMessage = error.response?.data?.message || 'Failed to reset password';
+      return thunkAPI.rejectWithValue({ message: errorMessage, statusCode });
+    }
+  }
+);
+
 const adminAuthSlice = createSlice({
   name: 'adminAuth',
   initialState: {
     admin: null,
-    token: null,
+    token: typeof window !== 'undefined' ? localStorage.getItem('adminToken') : null,
     loading: false,
     status: 'idle',
     error: null,
@@ -77,10 +105,12 @@ const adminAuthSlice = createSlice({
     logoutAdmin: (state) => {
       state.admin = null;
       state.token = null;
-      localStorage.removeItem('adminToken'); // Clear token on logout
+      localStorage.removeItem('adminToken');
+      sessionStorage.removeItem('adminData');
     },
     setAdmin: (state, action) => {
       state.admin = action.payload;
+      state.token = localStorage.getItem('adminToken');
     },
     clearStatus: (state) => {
       state.status = 'idle';
@@ -150,6 +180,34 @@ const adminAuthSlice = createSlice({
         state.status = 'succeeded';
       })
       .addCase(resetAdminPassword.rejected, (state, action) => {
+        state.loading = false;
+        state.status = 'failed';
+        state.error = action.payload;
+      })
+      // Send Reset Code Reducers
+      .addCase(sendResetCode.pending, (state) => {
+        state.loading = true;
+        state.status = 'pending';
+      })
+      .addCase(sendResetCode.fulfilled, (state) => {
+        state.loading = false;
+        state.status = 'succeeded';
+      })
+      .addCase(sendResetCode.rejected, (state, action) => {
+        state.loading = false;
+        state.status = 'failed';
+        state.error = action.payload;
+      })
+      // Verify Reset Code and Change Password Reducers
+      .addCase(verifyResetCodeAndChangePassword.pending, (state) => {
+        state.loading = true;
+        state.status = 'pending';
+      })
+      .addCase(verifyResetCodeAndChangePassword.fulfilled, (state) => {
+        state.loading = false;
+        state.status = 'succeeded';
+      })
+      .addCase(verifyResetCodeAndChangePassword.rejected, (state, action) => {
         state.loading = false;
         state.status = 'failed';
         state.error = action.payload;

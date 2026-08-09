@@ -1,5 +1,6 @@
 import { useRouter } from "next/router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { Spinner, Center } from "@chakra-ui/react";
 import RegisterAuthLayout from "../../layouts/auth/RegisterAuthLayout";
 import AdminRegAuthLayout from "../../layouts/auth/AdminRegAuthLayout";
 
@@ -20,6 +21,49 @@ const Register = () => {
   const router = useRouter();
   const { role = "user" } = router.query; // Capture the role from the URL
   const [step, setStep] = useState(0);
+  const [registrationStatus, setRegistrationStatus] = useState({
+    portalRegistrationOpen: true,
+    registrationMessage: "",
+    loading: true,
+  });
+
+  // Check registration status on component mount
+  useEffect(() => {
+    if (role === "user") {
+      checkRegistrationStatus();
+    } else {
+      setRegistrationStatus(prev => ({ ...prev, loading: false }));
+    }
+  }, [role]);
+
+  const checkRegistrationStatus = async () => {
+    try {
+      const response = await fetch("/api/settings/check-registration");
+      if (response.ok) {
+        const data = await response.json();
+        setRegistrationStatus({
+          portalRegistrationOpen: data.portalRegistrationOpen,
+          registrationMessage: data.registrationMessage,
+          loading: false,
+        });
+      } else {
+        // Default to open if API fails
+        setRegistrationStatus({
+          portalRegistrationOpen: true,
+          registrationMessage: "",
+          loading: false,
+        });
+      }
+    } catch (error) {
+      console.error("Error checking registration status:", error);
+      // Default to open if API fails
+      setRegistrationStatus({
+        portalRegistrationOpen: true,
+        registrationMessage: "",
+        loading: false,
+      });
+    }
+  };
 
   // State to hold user registration form values
   const [formValues, setFormValues] = useState({
@@ -28,6 +72,8 @@ const Register = () => {
       lastName: "",
       email: "",
       phoneNumber: "",
+      gender: "",
+      profilePicture: "",
     },
     CAC: {
       userCategory: "Student",
@@ -113,6 +159,30 @@ const Register = () => {
   };
 
   const renderUserRegistrationForm = () => {
+    // If registration is closed, show message
+    if (!registrationStatus.portalRegistrationOpen) {
+      return (
+        <div style={{ 
+          textAlign: 'center', 
+          padding: '40px 20px',
+          backgroundColor: '#fff3cd',
+          border: '1px solid #ffeaa7',
+          borderRadius: '8px',
+          margin: '20px'
+        }}>
+          <h2 style={{ color: '#856404', marginBottom: '20px' }}>
+            Registration Closed
+          </h2>
+          <p style={{ color: '#856404', fontSize: '16px' }}>
+            {registrationStatus.registrationMessage}
+          </p>
+          <p style={{ color: '#856404', fontSize: '14px', marginTop: '20px' }}>
+            Please contact the administrator for more information.
+          </p>
+        </div>
+      );
+    }
+
     return (
       <>
         {step === 0 && (
@@ -219,6 +289,23 @@ const Register = () => {
   };
 
   const isAdminOrSuperAdmin = role === "admin" || role === "super-admin";
+
+  // Show loading state
+  if (registrationStatus.loading) {
+    return (
+      <div style={{ 
+        textAlign: 'center', 
+        padding: '40px 20px',
+        backgroundColor: '#f8f9fa',
+        borderRadius: '8px',
+        margin: '20px'
+      }}>
+        <Center>
+          <Spinner size="lg" color="green.500" />
+        </Center>
+      </div>
+    );
+  }
 
   return isAdminOrSuperAdmin ? (
     <AdminRegAuthLayout

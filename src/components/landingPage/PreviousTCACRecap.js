@@ -1,7 +1,10 @@
+import React from "react";
 import { Box, Flex, Heading, Image, Text, VStack } from "@chakra-ui/react";
-import Slider from "react-slick";
+import SliderModule from "react-slick";
 
-// Sample data for updates
+// Safely unwrap Slider to avoid server/client mismatch
+const Slider = SliderModule.default || SliderModule;
+
 const updates = [
   {
     id: 1,
@@ -74,16 +77,16 @@ const PrevTCACRecap = () => {
   return (
     <Box bg="green.500" py={6} px={4}>
       <Flex
-        justifyItems={"flex-start"}
-        alignItems={"center"}
+        justifyContent="flex-start"
+        alignItems="center"
         maxW="fit-content"
         mb={6}
-        p={"2"}
+        p="2"
         border="2px solid black"
         boxShadow="4px 4px 12px rgba(0, 0, 0, 0.8)"
-        className="bg-[#E1EDDF]"
+        bg="#E1EDDF"
       >
-        <Heading as="h2" textAlign="center" >
+        <Heading as="h2" textAlign="center" fontSize="2xl">
           Previous TCAC Recap
         </Heading>
       </Flex>
@@ -95,9 +98,11 @@ const PrevTCACRecap = () => {
               <Image
                 src={update.image}
                 alt={update.title}
-                // boxSize="200px"
                 objectFit="cover"
                 borderRadius="md"
+                fallbackSrc="https://via.placeholder.com/300x200?text=TCAC+Recap"
+                w="full"
+                h={{ base: "200px", md: "250px" }}
               />
               <Text fontWeight="bold" color="white" fontSize="lg">
                 {update.title}
@@ -114,4 +119,3 @@ const PrevTCACRecap = () => {
 };
 
 export default PrevTCACRecap;
-

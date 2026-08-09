@@ -1,5 +1,6 @@
 // components/LoginLayout.js
 import Link from "next/link";
+import { useState, useEffect } from "react";
 import {
   Box,
   Flex,
@@ -9,11 +10,56 @@ import {
   Text,
   Button,
   Image,
+  Alert,
+  AlertIcon,
 } from "@chakra-ui/react";
 import { useRouter } from "next/router";
 
 const LoginAuthLayout = ({ formHeading, loginForm, role }) => {
   const router = useRouter();
+  const [registrationStatus, setRegistrationStatus] = useState({
+    portalRegistrationOpen: true,
+    registrationMessage: "",
+    loading: true,
+  });
+
+  // Check registration status on component mount
+  useEffect(() => {
+    if (role === "user") {
+      checkRegistrationStatus();
+    } else {
+      setRegistrationStatus(prev => ({ ...prev, loading: false }));
+    }
+  }, [role]);
+
+  const checkRegistrationStatus = async () => {
+    try {
+      const response = await fetch("/api/settings/check-registration");
+      if (response.ok) {
+        const data = await response.json();
+        setRegistrationStatus({
+          portalRegistrationOpen: data.portalRegistrationOpen,
+          registrationMessage: data.registrationMessage,
+          loading: false,
+        });
+      } else {
+        // Default to open if API fails
+        setRegistrationStatus({
+          portalRegistrationOpen: true,
+          registrationMessage: "",
+          loading: false,
+        });
+      }
+    } catch (error) {
+      console.error("Error checking registration status:", error);
+      // Default to open if API fails
+      setRegistrationStatus({
+        portalRegistrationOpen: true,
+        registrationMessage: "",
+        loading: false,
+      });
+    }
+  };
 
   return (
     <Box>
@@ -37,6 +83,14 @@ const LoginAuthLayout = ({ formHeading, loginForm, role }) => {
         </Link>
 
         <HStack spacing={4}>
+          {role === "user" && !registrationStatus.loading && !registrationStatus.portalRegistrationOpen && (
+            <Alert status="warning" variant="subtle" borderRadius="md" maxW="300px">
+              <AlertIcon />
+              <Text fontSize="sm" color="orange.800">
+                Registration Closed
+              </Text>
+            </Alert>
+          )}
           <Text display={{ base: "none", md: "block" }} fontWeight="medium">
             Don&apos;t have an account yet?
           </Text>
@@ -55,6 +109,7 @@ const LoginAuthLayout = ({ formHeading, loginForm, role }) => {
               borderColor: "green.500",
             }}
             onClick={() => router.push(`/register/${role}`)}
+            isDisabled={role === "user" && !registrationStatus.portalRegistrationOpen}
           >
             Register
           </Button>
@@ -108,6 +163,7 @@ const LoginAuthLayout = ({ formHeading, loginForm, role }) => {
                     px: "2",
                     py: "1",
                   }}
+                  isDisabled={role === "user" && !registrationStatus.portalRegistrationOpen}
                 >
                   Register
                 </Button>

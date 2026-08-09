@@ -109,6 +109,9 @@ const AdminLoginForm = ({ role }) => {
             position: "top",
           });
         } else {
+          localStorage.setItem('adminToken', adminData.token);
+          sessionStorage.setItem('adminData', JSON.stringify(adminData.admin));
+          
           toast({
             title: "Success!",
             description: "Login successful. Redirecting to your dashboard...",
@@ -117,8 +120,8 @@ const AdminLoginForm = ({ role }) => {
             isClosable: true,
             position: "top",
           });
-          router.push(`/${role}/dashboard`);
-
+          
+          router.push('/admin/dashboard');
           setFormValues({ emailOrID: "", password: "" });
         }
       } else if (resultAction.meta.requestStatus === "rejected") {

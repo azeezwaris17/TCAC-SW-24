@@ -1,14 +1,17 @@
-import { Box, Flex, Text, Heading, Image } from "@chakra-ui/react";
-import { FaInfoCircle } from "react-icons/fa";
+import React from "react";
+import { Box, Flex, Heading, Text, Image } from "@chakra-ui/react";
 import { motion } from "framer-motion";
-import Slider from "react-slick";
 
-// Sample updates data
-const updates = [
+// 1. Import the default module
+import SliderModule from "react-slick";
+// 2. Safely unwrap the Slider component function 
+const Slider = SliderModule.default || SliderModule;
+
+const defaultUpdates = [
   {
     imgSrc: "/images/image5.png",
     title: "TILETS",
-    description: "TIMSAN Southwest TILETS is... ",
+    description: "TIMSAN Southwest TILETS is...",
   },
   {
     imgSrc: "/images/image5.png",
@@ -17,84 +20,92 @@ const updates = [
   },
   {
     imgSrc: "/images/image5.png",
-    title: "Congres",
+    title: "Congress",
     description: "TIMSAN Southwest congress is...",
   },
-  // Add more objects as needed
+  {
+    imgSrc: "/images/image26.png",
+    title: "TCAC'25",
+    description: "TCAC'25 is the premier event of TIMSAN Southwest, bringing together students, professionals, and industry leaders for a day of learning, networking, and celebration.",
+  },
 ];
 
 const TCACUpdates = () => {
-  // react-slick settings for the carousel
   const settings = {
     dots: true,
     infinite: true,
-    speed: 500,
+    speed: 800,
     slidesToShow: 1,
     slidesToScroll: 1,
     autoplay: true,
-    autoplaySpeed: 3000,
+    autoplaySpeed: 4000,
     pauseOnHover: true,
     fade: true,
+    arrows: false,
   };
 
   return (
-    <Box as="section"  py={12} px={8} id="tcac-updates" className="bg-[#DFFBA4]">
-      {/* Section Header */}
+    <Box as="section" py={12} px={8} id="tcac-updates" bg="#DFFBA4">
       <Flex
         justifyContent="flex-start"
         alignItems="center"
-        mb={6}
-        p={2}
+        mb={10}
+        p={3}
         border="2px solid black"
-        boxShadow="4px 4px 12px rgba(0, 0, 0, 0.8)"
+        boxShadow="6px 6px 0px black"
         bg="green.500"
         maxW="fit-content"
       >
-        <Heading as="h2" textAlign="center" fontSize="2xl">
+        <Heading as="h2" fontSize="2xl" color="white">
           TCAC Updates
         </Heading>
       </Flex>
 
-      {/* Slider Section */}
-      <Slider {...settings}>
-        {updates.map((update, index) => (
-          <Box key={index} position="relative">
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              transition={{ duration: 0.3 }}
-            >
-              <Image
-                src={update.imgSrc}
-                alt={update.title}
-                borderRadius="md"
-                objectFit="cover"
-                w="full"
-                h={{ base: "300px", md: "500px" }}
-              />
-              <Box
-                position="absolute"
-                bottom={8}
-                left={8}
-                right={8}
-                p={4}
-                bg="rgba(0, 0, 0, 0.3)"
-                color="gray.50"
-                borderRadius="md"
-                textAlign="center"
-                border="2px solid black"
-                boxShadow="lg"
+      <Box mx="auto" maxW="1000px">
+        {/* Line 61: Slider will now safely run as a function/component instead of an object */}
+        <Slider {...settings}>
+          {defaultUpdates.map((update, idx) => (
+            <Box key={idx} p={4} outline="none">
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                transition={{ duration: 0.4, ease: "easeOut" }}
+                style={{ position: "relative", overflow: "hidden", borderRadius: "12px" }}
               >
-                <Text fontSize="xl" fontWeight="bold" color="gray.50">
-                  {update.title}
-                </Text>
-                <Text fontSize="md" mt={2} color="gray.50">
-                  {update.description}
-                </Text>
-              </Box>
-            </motion.div>
-          </Box>
-        ))}
-      </Slider>
+                <Image
+                  src={update.imgSrc}
+                  alt={update.title}
+                  objectFit="cover"
+                  w="full"
+                  h={{ base: "350px", md: "550px" }}
+                  fallbackSrc="https://via.placeholder.com/800x500?text=Loading+Update..."
+                />
+
+                <Box
+                  position="absolute"
+                  bottom={{ base: 4, md: 8 }}
+                  left={{ base: 4, md: 8 }}
+                  right={{ base: 4, md: 8 }}
+                  p={6}
+                  bg="rgba(0, 0, 0, 0.6)"
+                  backdropFilter="blur(8px)"
+                  color="white"
+                  borderRadius="xl"
+                  textAlign="center"
+                  border="1px solid rgba(255, 255, 255, 0.2)"
+                  boxShadow="2xl"
+                >
+                  <Text fontSize="2xl" fontWeight="bold" mb={2}>
+                    {update.title}
+                  </Text>
+                  <Text fontSize="md" noOfLines={3}>
+                    {update.description}
+                  </Text>
+                </Box>
+              </motion.div>
+            </Box>
+          ))}
+        </Slider>
+      </Box>
     </Box>
   );
 };

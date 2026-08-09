@@ -1,6 +1,6 @@
 // components/Footer.js
 import { Box, Flex, Text, Link, Icon, Image } from "@chakra-ui/react";
-import { FaFacebook, FaInstagram, FaLinkedin } from "react-icons/fa";
+import { FaFacebook, FaInstagram, FaTwitter } from "react-icons/fa";
 
 const Footer = () => {
   return (
@@ -39,8 +39,8 @@ const Footer = () => {
         <Text mx={2} color="gray.50" display={{ base: "none", md: "block" }}>
           |
         </Text>
-        <Link href="tel:+2347061097219" isExternal>
-          +2347061097219
+        <Link href="tel:+2348168089260" isExternal>
+          +2348168089260
         </Link>
       </Flex>
 
@@ -50,7 +50,7 @@ const Footer = () => {
 
       <Flex justify="center" mb={4} gap={4}>
         <Link
-          href="https://facebook.com"
+          href="https://facebook.com/timsansouthwest/"
           isExternal
           bg="green.500"
           rounded={"full"}
@@ -60,7 +60,7 @@ const Footer = () => {
           <Icon as={FaFacebook} boxSize={6} />
         </Link>
         <Link
-          href="https://instagram.com"
+          href="https://www.instagram.com/timsansouthwest/"
           isExternal
           bg="green.500"
           rounded={"full"}
@@ -70,19 +70,19 @@ const Footer = () => {
           <Icon as={FaInstagram} boxSize={6} />
         </Link>
         <Link
-          href="https://linkedin.com"
+          href="https://x.com/timsan_sw_zone"
           isExternal
           bg="green.500"
           rounded={"full"}
           p={"1"}
           color="gray.50"
         >
-          <Icon as={FaLinkedin} boxSize={6} />
+          <Icon as={FaTwitter} boxSize={6} />
         </Link>
       </Flex>
 
       <Text fontSize="sm" color="gray.50" mt={4}>
-        © 2024. Powered by TIMSAN Southwest. <br /> All Rights Reserved.
+        © 2025. Powered by TIMSAN Southwest. <br /> All Rights Reserved.
       </Text>
     </Box>
   );

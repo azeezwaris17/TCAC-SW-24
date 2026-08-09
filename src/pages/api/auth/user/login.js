@@ -1,6 +1,6 @@
 import connectDB from "../../../../utils/connectDB";
 import User from "../../../../models/User";
-import bcrypt from "bcrypt";
+import bcryptjs from "bcryptjs";
 import jwt from "jsonwebtoken";
 
 export default async function handler(req, res) {
@@ -27,7 +27,7 @@ export default async function handler(req, res) {
         return res.status(404).json({ error: "User not found" });
       }
 
-      const isPasswordValid = await bcrypt.compare(password, userData.password);
+      const isPasswordValid = await bcryptjs.compare(password, userData.password);
       if (!isPasswordValid) {
         return res.status(401).json({ error: "Invalid credentials" });
       }

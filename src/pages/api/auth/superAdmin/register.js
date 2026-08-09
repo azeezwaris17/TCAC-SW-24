@@ -1,6 +1,6 @@
 import connectDB from "../../../../utils/connectDB";
 import SuperAdmin from "../../../../models/SuperAdmin";
-import bcrypt from "bcrypt";
+import bcryptjs from "bcryptjs";
 
 export default async function handler(req, res) {
   await connectDB();
@@ -29,7 +29,7 @@ export default async function handler(req, res) {
       const superAdminID = await generateSuperAdminID();
 
       // Hash the password
-      const hashedPassword = await bcrypt.hash(password, 12);
+      const hashedPassword = await bcryptjs.hash(password, 12);
 
       // Create new admin
       const newSuperAdmin = new SuperAdmin({
@@ -69,10 +69,10 @@ async function generateSuperAdminID() {
       const lastSuperAdminID = lastSuperAdmin.superAdminID;
       const lastCounter = parseInt(lastSuperAdminID.split("-")[2]);
       const paddedCounter = (lastCounter + 1).toString().padStart(3, "0");
-      return `TCAC'24-SADM-${paddedCounter}`;
+      return `TCAC'25-SADM-${paddedCounter}`;
     } else {
       // If there are no admins in the database yet
-      return `TCAC'24-SADM-001`;
+      return `TCAC'25-SADM-001`;
     }
   } catch (error) {
     console.error("Error generating super admin ID:", error);

@@ -7,6 +7,12 @@ const userSchema = new mongoose.Schema(
     email: { type: String, required: true, unique: true },
     phoneNumber: { type: String, required: true },
     password: { type: String, required: true },
+    gender: { 
+      type: String, 
+      required: true,
+      enum: ["male", "female"]
+    },
+    profilePicture: { type: String, required: true },
 
     role: {
       type: String,
@@ -48,10 +54,31 @@ const userSchema = new mongoose.Schema(
 
     // Payment-related fields
     paymentType: { type: String },
-    campType: { type: String },
+    campType: { 
+      type: String, 
+      enum: ["Camp Only", "Conference Only", "Camp + Conference"],
+      default: "Camp Only" 
+    },
     amount: { type: Number },
     receiptUrl: { type: String },
     payementNarration: { type: String },
+
+    balance: { 
+      type: Number, 
+      default: function() {
+        return this.userCategory === "Child" ? 0 : 35000;
+      }
+    },
+
+    // Payment access control
+    paymentAccessGranted: { type: Boolean, default: false },
+    paymentRequestMessage: { type: String },
+    paymentRequestDate: { type: Date },
+    paymentRequestStatus: { 
+      type: String, 
+      enum: ["pending", "approved", "rejected", "revoked"], 
+      default: "pending" 
+    },
 
     createdAt: { type: Date, default: Date.now },
   },

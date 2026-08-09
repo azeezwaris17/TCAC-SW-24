@@ -1,42 +1,95 @@
 import connectDB from "../../../../utils/connectDB";
 import User from "../../../../models/User";
-import bcrypt from "bcrypt";
+import Payment from "../../../../models/Payment";
+import Settings from "../../../../models/Settings";
+import bcryptjs from "bcryptjs";
 
 export default async function handler(req, res) {
   await connectDB();
 
   if (req.method === "POST") {
-    // console.log("Incoming request body:", req.body); 
-
-    const { role, email, password, userCategory } = req.body;
-
+    const { role, email, password, userCategory, campType, amount } = req.body;
 
     if (!email || !password) {
       return res.status(400).json({ error: "Email and password are required" });
     }
 
     try {
-      console.log(`Role: ${role}`);
-      console.log(`Email: ${email}`);
-      console.log(`User Category: ${userCategory}`);
+      // Check if this is a user registration (not admin or super admin)
+      if (role === "User" || role === "user") {
+        // Check portal registration status
+        const settings = await Settings.findOne().sort({ createdAt: -1 });
+        
+        if (settings && !settings.portalRegistrationOpen) {
+          return res.status(403).json({ 
+            error: settings.registrationMessage || "Portal Has Been Closed For Registration" 
+          });
+        }
+      }
 
-      const existingUser = await User.findOne({  email });
+      const existingUser = await User.findOne({ email });
       if (existingUser) {
         return res.status(400).json({ error: "User already exists" });
       }
 
-      const hashedPassword = await bcrypt.hash(password, 12);
+      const hashedPassword = await bcryptjs.hash(password, 12);
       const userID = await generateUserID(userCategory);
 
+      // Calculate balance based on camp type and amount paid
+      let balance = 0;
+      const amountPaid = parseInt(amount);
+      
+      if (userCategory === "Child") {
+        // Children only get Camp Only with 50% discount
+        const campPrice = 3500; // 50% of ₦7,000
+        balance = Math.max(0, campPrice - amountPaid);
+      } else {
+        switch (campType) {
+          case "Camp Only":
+            const campPrice = 7000;
+            balance = Math.max(0, campPrice - amountPaid);
+            break;
+          case "Conference Only":
+            const conferencePrice = 35000;
+            balance = Math.max(0, conferencePrice - amountPaid);
+            break;
+          case "Camp + Conference":
+            const totalPrice = 42000; // ₦7,000 + ₦35,000
+            balance = Math.max(0, totalPrice - amountPaid);
+            break;
+          default:
+            balance = 0;
+        }
+      }
+
       const newUser = new User({
-        ...req.body, 
+        ...req.body,
         password: hashedPassword,
         userID,
         registrationStatus: "pending",
+        balance, 
       });
 
       await newUser.save();
       console.log("New User Saved:", newUser);
+
+      // Create a Payment record for the registration payment
+      if (amount && parseInt(amount) > 0) {
+        const registrationPayment = new Payment({
+          userId: newUser._id,
+          paymentType: req.body.paymentType || "Full Payment",
+          campType: campType,
+          amount: parseInt(amount),
+          transactionDate: new Date(),
+          receiptUrl: req.body.receiptUrl || "",
+          paymentNarration: req.body.paymentNarration || "Registration payment",
+          status: "approved", // Registration payments are automatically approved
+          adminComment: "Registration payment"
+        });
+
+        await registrationPayment.save();
+        console.log("Registration Payment Saved:", registrationPayment);
+      }
 
       return res.status(201).json({ message: "User registered successfully" });
     } catch (error) {
@@ -48,7 +101,6 @@ export default async function handler(req, res) {
   }
 }
 
-// Function to get the category abbreviation for userID
 function getCategoryID(userCategory) {
   switch (userCategory.toLowerCase()) {
     case "student":
@@ -64,29 +116,25 @@ function getCategoryID(userCategory) {
   }
 }
 
-// Helper function to generate participant ID
 function generateParticipantID(abbreviation, counter) {
-  const paddedCounter = counter.toString().padStart(3, "0"); // Zero-padding counter
+  const paddedCounter = counter.toString().padStart(3, "0");
   return `${abbreviation}${paddedCounter}`;
 }
 
-// Main function to generate a unique userID
 async function generateUserID(userCategory) {
-  const categoryID = getCategoryID(userCategory); // Get the category ID based on userCategory
+  const categoryID = getCategoryID(userCategory);
   const houseAbbreviations = ["ABU", "UMR", "UTH", "ALI"];
 
-  // Fetch the most recent user from the database
   const lastUser = await User.findOne().sort({ $natural: -1 }).limit(1);
 
   let participantID;
-  let participantIDCounter = 1; // Default counter
+  let participantIDCounter = 1;
 
   if (lastUser && lastUser.userID) {
-    const lastParticipantID = lastUser.userID.split("-").pop(); // Extract the ID part
-    const lastAbbreviation = lastParticipantID.substring(0, 3); // Extract the house abbreviation
-    const lastCounter = parseInt(lastParticipantID.substring(3), 10); // Extract and convert the counter
+    const lastParticipantID = lastUser.userID.split("-").pop();
+    const lastAbbreviation = lastParticipantID.substring(0, 3);
+    const lastCounter = parseInt(lastParticipantID.substring(3), 10);
 
-    // Determine the next participant ID
     if (lastAbbreviation === "ALI") {
       participantIDCounter = lastCounter + 1;
       participantID = generateParticipantID("ABU", participantIDCounter);
@@ -97,68 +145,8 @@ async function generateUserID(userCategory) {
       participantID = generateParticipantID(nextAbbreviation, lastCounter);
     }
   } else {
-    // Default participant ID if no last user exists
     participantID = generateParticipantID("ABU", participantIDCounter);
   }
 
-  // Return the final userID
-  return `TCAC'24-${categoryID}-${participantID}`;
-}
-
-// Define service account credentials for Google Sheets API
-const credentials = {
-  type: "service_account",
-  project_id: "toycac24-419900",
-  private_key_id: "b38cc9c45f42f7d6aa654f24eca5cd8360ce385f",
-  private_key: "YOUR_PRIVATE_KEY",
-  client_email: "toycac@toycac24-419900.iam.gserviceaccount.com",
-  client_id: "102162798731964732623",
-  auth_uri: "https://accounts.google.com/o/oauth2/auth",
-  token_uri: "https://oauth2.googleapis.com/token",
-  auth_provider_x509_cert_url: "https://www.googleapis.com/oauth2/v1/certs",
-  client_x509_cert_url:
-    "https://www.googleapis.com/robot/v1/metadata/x509/toycac%40toycac24-419900.iam.gserviceaccount.com",
-};
-
-// Append data to Google Sheets
-async function appendToSheet(newUser) {
-  try {
-    // Initialize Google Auth with credentials
-    const auth = new google.auth.GoogleAuth({
-      credentials,
-      scopes: ["https://www.googleapis.com/auth/spreadsheets"],
-    });
-
-    // Initialize Google Sheets API
-    const sheets = google.sheets({ version: "v4", auth });
-
-    // Prepare the data to append
-    const values = [
-      [
-        newUser.firstName,
-        newUser.lastName,
-        newUser.email,
-        newUser.phoneNumber,
-        newUser.userCategory,
-        newUser.userID,
-        newUser.receiptUrl,
-        newUser.registrationStatus,
-        newUser.timestamps,
-      ],
-    ];
-
-    // Set the request details
-    const request = {
-      spreadsheetId: "1Ezna-5Jcaf9Cp24xdvAxcA-Nw18N2qsa0EGE0QiATxs",
-      range: "Sheet1",
-      valueInputOption: "RAW",
-      resource: { values },
-    };
-
-    // Append the data
-    const response = await sheets.spreadsheets.values.append(request);
-    console.log("Data appended successfully:", response.data);
-  } catch (error) {
-    console.error("Error appending data:", error);
-  }
+  return `TCAC'25-${categoryID}-${participantID}`;
 }

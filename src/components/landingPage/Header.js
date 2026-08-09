@@ -9,43 +9,70 @@ import {
 } from "@chakra-ui/react";
 import { useRouter } from "next/router";
 import { FaBell } from "react-icons/fa";
+import { useState, useEffect } from "react";
 import BankDetailsModal from "./BankDetailsModal";
-import NewsModal from "./NewsModal";
-
-// Define the news array here
-const newsArray = [
-  {
-    id: 1,
-    title: "Important Update",
-    description: "Update regarding our upcoming events and changes.",
-    date: "2024-09-01",
-  },
-  {
-    id: 2,
-    title: "New Initiatives",
-    description: "Introducing new initiatives and programs for the community.",
-    date: "2024-08-25",
-  },
-  {
-    id: 3,
-    title: "Annual Report",
-    description: "A detailed report of our achievements over the past year.",
-    date: "2024-08-10",
-  },
-];
+import NotificationModal from "./NotificationModal";
 
 const Header = () => {
   const router = useRouter();
+  const [notifications, setNotifications] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [hasViewedNotifications, setHasViewedNotifications] = useState(false);
+  
   const {
     isOpen: isBankModalOpen,
     onOpen: onOpenBankModal,
     onClose: onCloseBankModal,
   } = useDisclosure();
   const {
-    isOpen: isNewsModalOpen,
-    onOpen: onOpenNewsModal,
-    onClose: onCloseNewsModal,
+    isOpen: isNotificationModalOpen,
+    onOpen: onOpenNotificationModal,
+    onClose: onCloseNotificationModal,
   } = useDisclosure();
+
+  // Fetch notifications
+  const fetchNotifications = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch("/api/notifications");
+      const data = await response.json();
+      
+      if (data.success) {
+        setNotifications(data.data);
+        
+        // Check if there are new notifications since last view
+        const lastViewedTime = localStorage.getItem('lastNotificationView');
+        const hasNewNotifications = data.data.some(notification => {
+          if (!lastViewedTime) return true; // First time viewing
+          return new Date(notification.createdAt) > new Date(lastViewedTime);
+        });
+        
+        setHasViewedNotifications(!hasNewNotifications);
+      } else {
+        console.error("Failed to fetch notifications:", data.message);
+      }
+    } catch (error) {
+      console.error("Error fetching notifications:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchNotifications();
+  }, []);
+
+  // Handle notification modal open
+  const handleOpenNotificationModal = () => {
+    onOpenNotificationModal();
+    // Mark as viewed
+    setHasViewedNotifications(true);
+    localStorage.setItem('lastNotificationView', new Date().toISOString());
+  };
+
+  // Check if there are any active notifications and user hasn't viewed them
+  const hasActiveNotifications = notifications.filter(n => n.isActive).length > 0;
+  const shouldShowDot = hasActiveNotifications && !hasViewedNotifications;
 
   return (
     <Box as="header" bg="green.50" p={4}>
@@ -56,33 +83,38 @@ const Header = () => {
           {/* notification/news */}
           <Flex align="center" position="relative">
             <IconButton
-              aria-label="News"
+              aria-label="Notifications"
               icon={<FaBell />}
               size="md"
               isRound
               colorScheme="gray"
-              onClick={onOpenNewsModal}
+              onClick={handleOpenNotificationModal}
             />
-            {newsArray.length > 0 && (
-              <Badge
+            {!loading && shouldShowDot && (
+              <Box
                 position="absolute"
                 top={-1}
                 right={-1}
-                colorScheme="red"
-                variant="solid"
-                fontSize="0.8em"
+                w="8px"
+                h="8px"
+                bg="red.500"
                 borderRadius="full"
-                px={2}
-                py={1}
-                minWidth="24px"
-                textAlign="center"
-              >
-                {newsArray.length}
-              </Badge>
+              />
             )}
           </Flex>
 
-          {/* login */}
+          <Button
+            colorScheme="blue"
+            variant="solid"
+            px={6}
+            borderRadius="xl"
+            border={"1px solid #000000"}
+            boxShadow={"2px 2px 0px 0px #000000"}
+            onClick={onOpenBankModal}
+          >
+            Donate
+          </Button>
+
           <Button
             colorScheme="green.500"
             variant="solid"
@@ -99,10 +131,9 @@ const Header = () => {
 
       {/* Modals */}
       <BankDetailsModal isOpen={isBankModalOpen} onClose={onCloseBankModal} />
-      <NewsModal
-        isOpen={isNewsModalOpen}
-        onClose={onCloseNewsModal}
-        newsArray={newsArray}
+      <NotificationModal
+        isOpen={isNotificationModalOpen}
+        onClose={onCloseNotificationModal}
       />
     </Box>
   );

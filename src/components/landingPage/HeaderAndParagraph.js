@@ -1,4 +1,4 @@
-// components/HeroSection.js
+import React, { useState } from "react";
 import {
   Box,
   Flex,
@@ -13,12 +13,10 @@ import {
   ModalFooter,
   useDisclosure,
   IconButton,
-  Input,
   Tooltip,
 } from "@chakra-ui/react";
 import { useRouter } from "next/router";
 import { CopyIcon } from "@chakra-ui/icons";
-import { useState } from "react";
 
 const HeroSection = () => {
   const router = useRouter();
@@ -41,51 +39,30 @@ const HeroSection = () => {
       <Box
         as="section"
         className="hero-section"
-        bg="green.50"
-        p={{base: 8, md: 12}}
+        p={{ base: 8, md: 12 }}
         display="flex"
         flexDirection="column"
         alignItems="center"
         justifyContent="center"
         textAlign="center"
       >
-        <Heading as="h1" size="xl" fontWeight="bold" mb={4}>
-          TIMSAN Camp and Conference 2024 (TCAC &apos;24)
+        <Heading as="h1" size="3xl" fontWeight="bold" mb={4} color="black">
+          TIMSAN Camp and Conference 2025 (TCAC &apos;25)
         </Heading>
-        <Text fontSize="lg" mb={8} maxW="2xl" mx="auto">
-          Participate in an extraordinary experience while delving into the
-          heart of leadership excellence, creativity, innovation, brotherhood,
-          and exponential growth.
+        <Text
+          fontSize="md"
+          mb={8}
+          maxW="2xl"
+          mx="auto"
+          color="black"
+          fontWeight="normal"
+        >
+          Participate in an extraordinary experience while delving into the heart of
+          leadership excellence, creativity, innovation, brotherhood, and exponential
+          growth.
         </Text>
-        <Box display="flex" justifyContent="center" gap={4}>
-          <Button
-            className="shadow-md"
-            colorScheme="white"
-            size="md"
-            px={8}
-            py={4}
-            borderRadius="xl"
-            border="1px solid black"
-            boxShadow={"2px 2px 0px 0px #000000"}
-            color="black"
-            onClick={() => router.push("/register/user")}
-          >
-            Register
-          </Button>
-
-          <Button
-           bg="#D9FAD4" 
-           color={"gray.800"}  
-            size="md"
-            borderRadius="xl"
-            border="1px solid black"
-            boxShadow={"2px 2px 0px 0px #000000"}
-            px={8}
-            py={4}
-          >
-            Donate
-          </Button>
-        </Box>
+        
+        
       </Box>
 
       {/* Modal for displaying bank details */}
@@ -95,8 +72,8 @@ const HeroSection = () => {
           <ModalHeader>Bank Account Details</ModalHeader>
           <ModalBody>
             <Box mb={4}>
-              <Text>Account Name: {bankDetails.accountName}</Text>
-              <Flex alignItems="center">
+              <Text mb={2}>Account Name: {bankDetails.accountName}</Text>
+              <Flex alignItems="center" mb={2}>
                 <Text>Account Number: {bankDetails.accountNumber}</Text>
                 <Tooltip
                   label={

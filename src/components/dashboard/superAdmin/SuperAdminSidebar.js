@@ -18,9 +18,9 @@ import {
   ChevronRightIcon,
   HamburgerIcon,
 } from "@chakra-ui/icons";
-import { FaUser, FaUserCog, FaEnvelope, FaSignOutAlt } from "react-icons/fa";
+import { FaUser, FaUserCog, FaEnvelope, FaSignOutAlt, FaMoneyCheckAlt, FaCog, FaClock, FaNewspaper } from "react-icons/fa";
 import { FiChevronsRight, FiChevronsLeft } from "react-icons/fi";
-import { MdDashboard } from "react-icons/md";
+import { MdDashboard, MdRestaurantMenu, MdToday } from "react-icons/md";
 
 const SuperAdminSidebar = ({ onMenuClick, accountData }) => {
   // console.log("super admin account data:", accountData);
@@ -75,7 +75,7 @@ const SuperAdminSidebar = ({ onMenuClick, accountData }) => {
       <Box
         onClick={() => {
           onMenuClick("registered-users");
-          if (sidebarVariant === "drawer") toggleDrawer(); // Close drawer
+          if (sidebarVariant === "drawer") toggleDrawer();
         }}
         _focus={{
           size: "md",
@@ -112,7 +112,7 @@ const SuperAdminSidebar = ({ onMenuClick, accountData }) => {
       <Box
         onClick={() => {
           onMenuClick("registered-admins");
-          if (sidebarVariant === "drawer") toggleDrawer(); // Close drawer
+          if (sidebarVariant === "drawer") toggleDrawer();
         }}
         _focus={{
           size: "md",
@@ -142,6 +142,302 @@ const SuperAdminSidebar = ({ onMenuClick, accountData }) => {
         >
           <FaUserCog />
           {!isSidebarCollapsed && <Text>Registered Admins</Text>}
+        </Link>
+      </Box>
+
+      {/* Activities Management */}
+      <Box
+        onClick={() => {
+          onMenuClick("activities-management");
+          if (sidebarVariant === "drawer") toggleDrawer();
+        }}
+        _focus={{
+          size: "md",
+          border: "1px solid black",
+          boxShadow: "2px 2px 0px 0px #000000",
+          p: "4",
+        }}
+        _hover={{
+          size: "md",
+          border: "1px solid black",
+          boxShadow: "2px 2px 0px 0px #000000",
+          p: "2",
+          textDecoration: "none",
+          scale: "1",
+        }}
+      >
+        <Link
+          display="flex"
+          alignItems="center"
+          gap="6"
+          _hover={{
+            textDecoration: "none",
+          }}
+          _focus={{
+            textDecoration: "none",
+          }}
+        >
+          <MdDashboard />
+          {!isSidebarCollapsed && <Text>Activities Management</Text>}
+        </Link>
+      </Box>
+
+      {/* Meal Management */}
+      <Box
+        onClick={() => {
+          onMenuClick("meal-management");
+          if (sidebarVariant === "drawer") toggleDrawer();
+        }}
+        _focus={{
+          size: "md",
+          border: "1px solid black",
+          boxShadow: "2px 2px 0px 0px #000000",
+          p: "4",
+        }}
+        _hover={{
+          size: "md",
+          border: "1px solid black",
+          boxShadow: "2px 2px 0px 0px #000000",
+          p: "2",
+          textDecoration: "none",
+          scale: "1",
+        }}
+      >
+        <Link
+          display="flex"
+          alignItems="center"
+          gap="6"
+          _hover={{
+            textDecoration: "none",
+          }}
+          _focus={{
+            textDecoration: "none",
+          }}
+        >
+          <MdRestaurantMenu />
+          {!isSidebarCollapsed && <Text>Meal Management</Text>}
+        </Link>
+      </Box>
+
+      {/* Days Management */}
+      <Box
+        onClick={() => {
+          onMenuClick("days-management");
+          if (sidebarVariant === "drawer") toggleDrawer();
+        }}
+        _focus={{
+          size: "md",
+          border: "1px solid black",
+          boxShadow: "2px 2px 0px 0px #000000",
+          p: "4",
+        }}
+        _hover={{
+          size: "md",
+          border: "1px solid black",
+          boxShadow: "2px 2px 0px 0px #000000",
+          p: "2",
+          textDecoration: "none",
+          scale: "1",
+        }}
+      >
+        <Link
+          display="flex"
+          alignItems="center"
+          gap="6"
+          _hover={{
+            textDecoration: "none",
+          }}
+          _focus={{
+            textDecoration: "none",
+          }}
+        >
+          <MdToday />
+          {!isSidebarCollapsed && <Text>Days Management</Text>}
+        </Link>
+      </Box>
+
+      {/* Post Management */}
+      <Box
+        onClick={() => {
+          onMenuClick("post-management");
+          if (sidebarVariant === "drawer") toggleDrawer();
+        }}
+        _focus={{
+          size: "md",
+          border: "1px solid black",
+          boxShadow: "2px 2px 0px 0px #000000",
+          p: "4",
+        }}
+        _hover={{
+          size: "md",
+          border: "1px solid black",
+          boxShadow: "2px 2px 0px 0px #000000",
+          p: "2",
+          textDecoration: "none",
+          scale: "1",
+        }}
+      >
+        <Link
+          display="flex"
+          alignItems="center"
+          gap="6"
+          _hover={{
+            textDecoration: "none",
+          }}
+          _focus={{
+            textDecoration: "none",
+          }}
+        >
+          <FaNewspaper />
+          {!isSidebarCollapsed && <Text>Information Management</Text>}
+        </Link>
+      </Box>
+
+      {/* Payment Management */}
+      <Box
+        onClick={() => {
+          onMenuClick("payment-management");
+          if (sidebarVariant === "drawer") toggleDrawer();
+        }}
+        _focus={{
+          size: "md",
+          border: "1px solid black",
+          boxShadow: "2px 2px 0px 0px #000000",
+          p: "4",
+        }}
+        _hover={{
+          size: "md",
+          border: "1px solid black",
+          boxShadow: "2px 2px 0px 0px #000000",
+          p: "2",
+          textDecoration: "none",
+          scale: "1",
+        }}
+      >
+        <Link
+          display="flex"
+          alignItems="center"
+          gap="6"
+          _hover={{
+            textDecoration: "none",
+          }}
+          _focus={{
+            textDecoration: "none",
+          }}
+        >
+          <FaMoneyCheckAlt />
+          {!isSidebarCollapsed && <Text>Payment Management</Text>}
+        </Link>
+      </Box>
+
+      {/* Settings */}
+      <Box
+        onClick={() => {
+          onMenuClick("settings");
+          if (sidebarVariant === "drawer") toggleDrawer();
+        }}
+        _focus={{
+          size: "md",
+          border: "1px solid black",
+          boxShadow: "2px 2px 0px 0px #000000",
+          p: "4",
+        }}
+        _hover={{
+          size: "md",
+          border: "1px solid black",
+          boxShadow: "2px 2px 0px 0px #000000",
+          p: "2",
+          textDecoration: "none",
+          scale: "1",
+        }}
+      >
+        <Link
+          display="flex"
+          alignItems="center"
+          gap="6"
+          _hover={{
+            textDecoration: "none",
+          }}
+          _focus={{
+            textDecoration: "none",
+          }}
+        >
+          <FaCog />
+          {!isSidebarCollapsed && <Text>Settings</Text>}
+        </Link>
+      </Box>
+
+      {/* Payment Request Management */}
+      <Box
+        onClick={() => {
+          onMenuClick("payment-requests");
+          if (sidebarVariant === "drawer") toggleDrawer();
+        }}
+        _focus={{
+          size: "md",
+          border: "1px solid black",
+          boxShadow: "2px 2px 0px 0px #000000",
+          p: "4",
+        }}
+        _hover={{
+          size: "md",
+          border: "1px solid black",
+          boxShadow: "2px 2px 0px 0px #000000",
+          p: "2",
+          textDecoration: "none",
+          scale: "1",
+        }}
+      >
+        <Link
+          display="flex"
+          alignItems="center"
+          gap="6"
+          _hover={{
+            textDecoration: "none",
+          }}
+          _focus={{
+            textDecoration: "none",
+          }}
+        >
+          <FaClock />
+          {!isSidebarCollapsed && <Text>Payment Requests</Text>}
+        </Link>
+      </Box>
+
+      {/* Slip Management */}
+      <Box
+        onClick={() => {
+          onMenuClick("slip-management");
+          if (sidebarVariant === "drawer") toggleDrawer();
+        }}
+        _focus={{
+          size: "md",
+          border: "1px solid black",
+          boxShadow: "2px 2px 0px 0px #000000",
+          p: "4",
+        }}
+        _hover={{
+          size: "md",
+          border: "1px solid black",
+          boxShadow: "2px 2px 0px 0px #000000",
+          p: "2",
+          textDecoration: "none",
+          scale: "1",
+        }}
+      >
+        <Link
+          display="flex"
+          alignItems="center"
+          gap="6"
+          _hover={{
+            textDecoration: "none",
+          }}
+          _focus={{
+            textDecoration: "none",
+          }}
+        >
+          <FaUserCog />
+          {!isSidebarCollapsed && <Text>Slip Management</Text>}
         </Link>
       </Box>
 

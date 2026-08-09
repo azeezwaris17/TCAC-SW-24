@@ -1,8 +1,10 @@
+import React from "react";
 import { Box, Flex, Image, Heading, Text, VStack } from "@chakra-ui/react";
 import { motion } from "framer-motion";
-import Slider from "react-slick";
+import SliderModule from "react-slick";
 
-// Sample activities data
+const Slider = SliderModule.default || SliderModule;
+
 const activities = [
   { name: "Promote Civility", image: "/images/image.png" },
   { name: "Free Medical Care", image: "/images/image24.png" },
@@ -40,10 +42,10 @@ const ActivitiesSection = () => {
   };
 
   return (
-    <Box as="section" py={12} px={8} id="activities" className="bg-[#E1EDDF]">
+    <Box as="section" py={12} px={8} id="activities" bg="#E1EDDF">
       {/* Section Header */}
       <Flex
-        justifyItems={"flex-start"}
+        justifyContent="flex-start"
         alignItems="center"
         mb={6}
         p={2}
@@ -51,7 +53,6 @@ const ActivitiesSection = () => {
         boxShadow="4px 4px 12px rgba(0, 0, 0, 0.8)"
         bg="lime.100"
         maxW="fit-content"
-        className="bg-lime-100"
       >
         <Heading as="h2" textAlign="center" fontSize="2xl">
           TCAC Activities
@@ -78,8 +79,8 @@ const ActivitiesSection = () => {
                   src={activity.image}
                   alt={activity.name}
                   borderRadius="md"
-                  // boxSize="200px"
                   objectFit="cover"
+                  fallbackSrc="https://via.placeholder.com/300x200?text=Activity"
                 />
                 <Text fontWeight="bold" fontSize="lg" color="gray.700">
                   {activity.name}

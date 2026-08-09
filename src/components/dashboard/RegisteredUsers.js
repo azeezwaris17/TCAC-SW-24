@@ -25,9 +25,20 @@ import {
   Box,
   Flex,
   useToast,
+  Center,
+  Image,
+  IconButton,
+  VStack,
+  HStack,
+  Badge,
+  Grid,
+  GridItem,
+  useDisclosure as useImageDisclosure,
 } from "@chakra-ui/react";
-import { FaSearch, FaDownload, FaSync } from "react-icons/fa";
+import { FaSearch, FaDownload, FaSync, FaEye, FaTimes, FaExpand, FaCompress } from "react-icons/fa";
 import { IoIosArrowBack, IoIosArrowForward } from "react-icons/io";
+import { Empty } from "antd";
+import "antd/dist/reset.css";
 import {
   fetchUsers,
   approveUser,
@@ -46,7 +57,15 @@ const RegisteredUsers = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(0);
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const [deleteModal, setDeleteModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [imageZoom, setImageZoom] = useState(1);
+  const { 
+    isOpen: isImageOpen, 
+    onOpen: onImageOpen, 
+    onClose: onImageClose 
+  } = useImageDisclosure();
 
   const toast = useToast();
 
@@ -54,13 +73,11 @@ const RegisteredUsers = () => {
   const pageCount = Math.ceil(users.length / usersPerPage); // Calculate total pages
 
   useEffect(() => {
-    console.log("Fetching users...");
     dispatch(fetchUsers());
   }, [dispatch]);
 
   useEffect(() => {
     if (error) {
-      console.log("Error:", error);
       toast({
         title: "Error",
         description: error.message,
@@ -78,7 +95,6 @@ const RegisteredUsers = () => {
 
   const handleApprove = async (id) => {
     try {
-      console.log("Approving user with ID:", id);
       await dispatch(approveUser(id)).unwrap();
       toast({
         title: "Success",
@@ -95,7 +111,6 @@ const RegisteredUsers = () => {
 
   const handleReject = async (id) => {
     try {
-      console.log("Rejecting user with ID:", id);
       await dispatch(rejectUser(id)).unwrap();
       toast({
         title: "Success",
@@ -110,33 +125,64 @@ const RegisteredUsers = () => {
     onClose();
   };
 
+  const handleDelete = async (id) => {
+    try {
+      const res = await fetch("/api/user-actions", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast({
+          title: "Success",
+          description: "User deleted successfully!",
+          status: "success",
+          duration: 5000,
+          isClosable: true,
+        });
+        dispatch(fetchUsers()); // Refresh the user list
+        setDeleteModal(false); // Close the delete modal
+        onClose(); // Close the user details modal
+      } else {
+        toast({
+          title: "Error",
+          description: data.message || "Failed to delete user.",
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error.message,
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    }
+  };
+
   const handleSearch = (e) => {
     setSearchTerm(e.target.value);
     setCurrentPage(0); // Reset to first page when searching
   };
 
   const handleExportToExcel = () => {
-    // console.log("Exporting to Excel...");
-
-    // Define keys to exclude
     const excludedKeys = ["_id", "password", "__v", "updatedAt"];
-
-    // Filter and map user data
     const filteredUsers = users.map((user) => {
       return Object.entries(user)
-        .filter(([key, value]) => !excludedKeys.includes(key) && value) // Exclude specified keys and ensure values are not empty
+        .filter(([key, value]) => !excludedKeys.includes(key) && value)
         .reduce((acc, [key, value]) => {
           acc[key] = value;
           return acc;
         }, {});
     });
 
-    // Create a worksheet from the filtered user data
     const worksheet = XLSX.utils.json_to_sheet(filteredUsers);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Users");
-
-    // Export the file
     XLSX.writeFile(workbook, "users_data.xlsx");
   };
 
@@ -149,20 +195,49 @@ const RegisteredUsers = () => {
   };
 
   const handleUpdateTable = () => {
-    console.log("Updating table...");
     dispatch(fetchUsers());
   };
 
-  // Filtered users based on search term
+  const handleViewImage = (imageUrl) => {
+    setSelectedImage(imageUrl);
+    setImageZoom(1);
+    onImageOpen();
+  };
+
+  const handleZoomIn = () => {
+    setImageZoom(prev => Math.min(prev + 0.25, 3));
+  };
+
+  const handleZoomOut = () => {
+    setImageZoom(prev => Math.max(prev - 0.25, 0.5));
+  };
+
+  const handleResetZoom = () => {
+    setImageZoom(1);
+  };
+
   const filteredUsers = users.filter(
-    (user) =>
-      user.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.category.toLowerCase().includes(searchTerm.toLowerCase())
+    (user) => {
+      if (!user) return false;
+      
+      const searchLower = searchTerm.toLowerCase();
+      const firstName = user.firstName ? user.firstName.toLowerCase() : '';
+      const lastName = user.lastName ? user.lastName.toLowerCase() : '';
+      const fullName = `${firstName} ${lastName}`.trim();
+      const fullNameReversed = `${lastName} ${firstName}`.trim();
+      
+      return (
+        firstName.includes(searchLower) ||
+        lastName.includes(searchLower) ||
+        fullName.includes(searchLower) ||
+        fullNameReversed.includes(searchLower) ||
+        (user.email && user.email.toLowerCase().includes(searchLower)) ||
+        (user.userCategory && user.userCategory.toLowerCase().includes(searchLower)) ||
+        (user.userID && user.userID.toLowerCase().includes(searchLower))
+      );
+    }
   );
 
-  // Users to display on the current page
   const currentUsers = filteredUsers.slice(
     currentPage * usersPerPage,
     (currentPage + 1) * usersPerPage
@@ -170,9 +245,7 @@ const RegisteredUsers = () => {
 
   return (
     <Box>
-      {/* search, update and download component */}
       <Flex mb={8} justify="space-between" align="center">
-        {/* search input */}
         <Flex align="center">
           <Input
             placeholder="Search users..."
@@ -181,12 +254,8 @@ const RegisteredUsers = () => {
             size="sm"
             width="200px"
           />
-          <Button size="sm" ml={2} onClick={handleSearch} icon={<FaSearch />}>
-            <FaSearch />
-          </Button>
         </Flex>
 
-        {/* update and download buttons */}
         <Flex align="center" gap={4}>
           <Button
             size="sm"
@@ -220,25 +289,48 @@ const RegisteredUsers = () => {
             </Tr>
           </Thead>
           <Tbody>
-            {currentUsers.map((user, index) => (
-              <Tr key={user._id}>
-                <Td>{index + 1 + currentPage * usersPerPage}</Td>
-                <Td>{user.firstName}</Td>
-                <Td>{user.lastName}</Td>
-                <Td>{user.email}</Td>
-                <Td>{user.userCategory}</Td>
-                <Td>
-                  <Button size="sm" onClick={() => handleViewMore(user)}>
-                    View More
-                  </Button>
+            {loading ? (
+              <Tr>
+                <Td colSpan={6}>
+                  <Center>
+                    <Text>Loading...</Text>
+                  </Center>
                 </Td>
               </Tr>
-            ))}
+            ) : currentUsers.length === 0 ? (
+              <Tr>
+                <Td colSpan={6}>
+                  <Center>
+                    <Empty 
+                      description={
+                        <span style={{ color: "#A0AEC0", fontWeight: 600 }}>
+                          {searchTerm ? `No users found for "${searchTerm}"` : "No data"}
+                        </span>
+                      }
+                    />
+                  </Center>
+                </Td>
+              </Tr>
+            ) : (
+              currentUsers.map((user, index) => (
+                <Tr key={user._id}>
+                  <Td>{index + 1 + currentPage * usersPerPage}</Td>
+                  <Td>{user.firstName}</Td>
+                  <Td>{user.lastName}</Td>
+                  <Td>{user.email}</Td>
+                  <Td>{user.userCategory}</Td>
+                  <Td>
+                    <Button size="sm" onClick={() => handleViewMore(user)}>
+                      View More
+                    </Button>
+                  </Td>
+                </Tr>
+              ))
+            )}
           </Tbody>
         </Table>
       </TableContainer>
 
-      {/* Pagination Controls */}
       <Flex mt={8} justify="center" align="center">
         <Button
           onClick={() => handlePageChange("prev")}
@@ -259,56 +351,231 @@ const RegisteredUsers = () => {
         </Button>
       </Flex>
 
-      {/* Modal */}
       {selectedUser && (
-        <Modal isOpen={isOpen} onClose={onClose}>
-          <ModalOverlay />
-          <ModalContent>
-            <ModalHeader>User Details</ModalHeader>
-            <ModalCloseButton />
-            <ModalBody>
-              {(() => {
-                const excludedKeys = ["_id", "password", "updatedAt", "__v"]; // Define excluded keys here
-
-                return (
-                  <Flex direction="column" gap={4}>
-                    {Object.entries(selectedUser)
-                      .filter(
-                        ([key, value]) => !excludedKeys.includes(key) && value
-                      ) // Filter out excluded keys and empty/null values
-                      .map(([key, value]) => (
-                        <Flex key={key} align="center">
-                          <Text fontWeight="bold" mr={2}>
-                            {key
-
-                              .replace(/([A-Z])/g, " $1")
-                              .replace(/^./, (str) => str.toUpperCase())}
-                            :
-                          </Text>
-                          {key === "receiptUrl" ? (
-                            <Link
-                              as={NextLink}
-                              href={value}
-                              isExternal
-                              color="blue.500"
-                              textDecoration="underline"
-                            >
-                              View Receipt
-                            </Link>
-                          ) : (
-                            <Text>{value}</Text>
-                          )}
+        <Modal isOpen={isOpen} onClose={onClose} size="6xl">
+          <ModalOverlay bg="blackAlpha.600" backdropFilter="blur(10px)" />
+          <ModalContent 
+            maxW="90vw" 
+            maxH="90vh" 
+            bg="white" 
+            borderRadius="xl"
+            boxShadow="2xl"
+            overflow="hidden"
+          >
+            <ModalHeader 
+              bg="gray.50" 
+              borderBottom="1px solid" 
+              borderColor="gray.200"
+              py={6}
+            >
+              <Flex align="center" justify="space-between">
+                <VStack align="start" spacing={1}>
+                  <Text fontSize="2xl" fontWeight="bold" color="gray.800">
+                    User Details
+                  </Text>
+                  <Text fontSize="sm" color="gray.600">
+                    {selectedUser.firstName} {selectedUser.lastName}
+                  </Text>
+                </VStack>
+                <Badge 
+                  colorScheme={
+                    selectedUser.registrationStatus === "approved" ? "green" : 
+                    selectedUser.registrationStatus === "rejected" ? "red" : "yellow"
+                  }
+                  fontSize="sm"
+                  px={3}
+                  py={1}
+                  borderRadius="full"
+                >
+                  {selectedUser.registrationStatus?.toUpperCase()}
+                </Badge>
+              </Flex>
+            </ModalHeader>
+            <ModalCloseButton 
+              size="lg" 
+              top={4} 
+              right={4}
+              bg="white"
+              borderRadius="full"
+              boxShadow="md"
+            />
+            
+            <ModalBody p={0} maxH="70vh" overflowY="auto">
+              <Grid templateColumns="repeat(2, 1fr)" gap={8} p={8}>
+                {/* Left Column - User Information */}
+                <GridItem>
+                  <VStack align="stretch" spacing={6}>
+                    <Box>
+                      <Text fontSize="lg" fontWeight="bold" color="gray.800" mb={4}>
+                        Personal Information
+                      </Text>
+                      <VStack align="stretch" spacing={3}>
+                        <Flex justify="space-between" p={3} bg="gray.50" borderRadius="md">
+                          <Text fontWeight="semibold" color="gray.700">First Name:</Text>
+                          <Text>{selectedUser.firstName}</Text>
                         </Flex>
+                        <Flex justify="space-between" p={3} bg="gray.50" borderRadius="md">
+                          <Text fontWeight="semibold" color="gray.700">Last Name:</Text>
+                          <Text>{selectedUser.lastName}</Text>
+                        </Flex>
+                        <Flex justify="space-between" p={3} bg="gray.50" borderRadius="md">
+                          <Text fontWeight="semibold" color="gray.700">Email:</Text>
+                          <Text color="blue.600">{selectedUser.email}</Text>
+                        </Flex>
+                        <Flex justify="space-between" p={3} bg="gray.50" borderRadius="md">
+                          <Text fontWeight="semibold" color="gray.700">Phone:</Text>
+                          <Text>{selectedUser.phoneNumber}</Text>
+                        </Flex>
+                        {selectedUser.gender && (
+                          <Flex justify="space-between" p={3} bg="gray.50" borderRadius="md">
+                            <Text fontWeight="semibold" color="gray.700">Gender:</Text>
+                            <Text textTransform="capitalize">{selectedUser.gender}</Text>
+                          </Flex>
+                        )}
+                        {selectedUser.userCategory && (
+                          <Flex justify="space-between" p={3} bg="gray.50" borderRadius="md">
+                            <Text fontWeight="semibold" color="gray.700">Category:</Text>
+                            <Badge colorScheme="purple" px={2} py={1}>
+                              {selectedUser.userCategory}
+                            </Badge>
+                          </Flex>
+                        )}
+                      </VStack>
+                    </Box>
+
+                    <Box>
+                      <Text fontSize="lg" fontWeight="bold" color="gray.800" mb={4}>
+                        Registration Information
+                      </Text>
+                      <VStack align="stretch" spacing={3}>
+                        <Flex justify="space-between" p={3} bg="gray.50" borderRadius="md">
+                          <Text fontWeight="semibold" color="gray.700">User ID:</Text>
+                          <Text fontFamily="mono" fontSize="sm">{selectedUser.userID}</Text>
+                        </Flex>
+                        <Flex justify="space-between" p={3} bg="gray.50" borderRadius="md">
+                          <Text fontWeight="semibold" color="gray.700">Created:</Text>
+                          <Text>{new Date(selectedUser.createdAt).toLocaleDateString()}</Text>
+                        </Flex>
+                        {selectedUser.campType && (
+                          <Flex justify="space-between" p={3} bg="gray.50" borderRadius="md">
+                            <Text fontWeight="semibold" color="gray.700">Camp Type:</Text>
+                            <Text>{selectedUser.campType}</Text>
+                          </Flex>
+                        )}
+                      </VStack>
+                    </Box>
+                  </VStack>
+                </GridItem>
+
+                {/* Right Column - Images and Documents */}
+                <GridItem>
+                  <VStack align="stretch" spacing={6}>
+                    {/* Profile Picture */}
+                    {selectedUser.profilePicture && (
+                      <Box>
+                        <Text fontSize="lg" fontWeight="bold" color="gray.800" mb={4}>
+                          Profile Picture
+                        </Text>
+                        <Box 
+                          position="relative" 
+                          borderRadius="lg" 
+                          overflow="hidden"
+                          boxShadow="md"
+                          cursor="pointer"
+                          onClick={() => handleViewImage(selectedUser.profilePicture)}
+                          _hover={{ transform: 'scale(1.02)', transition: 'transform 0.2s' }}
+                        >
+                          <Image
+                            src={selectedUser.profilePicture}
+                            alt="Profile Picture"
+                            w="100%"
+                            h="200px"
+                            objectFit="cover"
+                          />
+                          <Box
+                            position="absolute"
+                            top={2}
+                            right={2}
+                            bg="blackAlpha.700"
+                            color="white"
+                            p={2}
+                            borderRadius="full"
+                          >
+                            <FaEye size={16} />
+                          </Box>
+                        </Box>
+                      </Box>
+                    )}
+
+                    {/* Receipt */}
+                    {selectedUser.receiptUrl && (
+                      <Box>
+                        <Text fontSize="lg" fontWeight="bold" color="gray.800" mb={4}>
+                          Receipt Document
+                        </Text>
+                        <Box 
+                          position="relative" 
+                          borderRadius="lg" 
+                          overflow="hidden"
+                          boxShadow="md"
+                          cursor="pointer"
+                          onClick={() => handleViewImage(selectedUser.receiptUrl)}
+                          _hover={{ transform: 'scale(1.02)', transition: 'transform 0.2s' }}
+                        >
+                          <Image
+                            src={selectedUser.receiptUrl}
+                            alt="Receipt"
+                            w="100%"
+                            h="200px"
+                            objectFit="cover"
+                          />
+                          <Box
+                            position="absolute"
+                            top={2}
+                            right={2}
+                            bg="blackAlpha.700"
+                            color="white"
+                            p={2}
+                            borderRadius="full"
+                          >
+                            <FaEye size={16} />
+                          </Box>
+                        </Box>
+                      </Box>
+                    )}
+
+                    {/* Additional Fields */}
+                    {Object.entries(selectedUser)
+                      .filter(([key, value]) => 
+                        !["_id", "password", "updatedAt", "__v", "firstName", "lastName", 
+                          "email", "phoneNumber", "gender", "userCategory", "userID", 
+                          "createdAt", "campType", "profilePicture", "receiptUrl"].includes(key) && value
+                      )
+                      .map(([key, value]) => (
+                        <Box key={key}>
+                          <Text fontSize="lg" fontWeight="bold" color="gray.800" mb={4}>
+                            {key.replace(/([A-Z])/g, " $1").replace(/^./, str => str.toUpperCase())}
+                          </Text>
+                          <Box p={3} bg="gray.50" borderRadius="md">
+                            <Text>{value}</Text>
+                          </Box>
+                        </Box>
                       ))}
-                  </Flex>
-                );
-              })()}
+                  </VStack>
+                </GridItem>
+              </Grid>
             </ModalBody>
 
-            <ModalFooter>
+            <ModalFooter 
+              bg="gray.50" 
+              borderTop="1px solid" 
+              borderColor="gray.200"
+              py={6}
+            >
+              <HStack spacing={4} justify="flex-end" w="100%">
               <Button
                 colorScheme="green"
-                mr={3}
+                  size="lg"
                 onClick={() => handleApprove(selectedUser._id)}
                 isDisabled={selectedUser.registrationStatus === "approved"}
               >
@@ -316,10 +583,138 @@ const RegisteredUsers = () => {
               </Button>
               <Button
                 colorScheme="red"
+                  size="lg"
                 onClick={() => handleReject(selectedUser._id)}
                 isDisabled={selectedUser.registrationStatus === "rejected"}
               >
                 Reject
+              </Button>
+              <Button
+                colorScheme="red"
+                  size="lg"
+                onClick={() => setDeleteModal(true)}
+              >
+                Delete
+              </Button>
+              </HStack>
+            </ModalFooter>
+          </ModalContent>
+        </Modal>
+      )}
+
+      {/* Image Viewer Modal */}
+      <Modal isOpen={isImageOpen} onClose={onImageClose} size="6xl">
+        <ModalOverlay bg="blackAlpha.800" backdropFilter="blur(10px)" />
+        <ModalContent 
+          maxW="95vw" 
+          maxH="95vh" 
+          bg="transparent" 
+          boxShadow="none"
+          overflow="hidden"
+        >
+          <ModalCloseButton 
+            size="lg" 
+            top={4} 
+            right={4}
+            bg="white"
+            color="gray.800"
+            borderRadius="full"
+            boxShadow="lg"
+            zIndex={10}
+          />
+          
+          <ModalBody p={0} position="relative">
+            <Box
+              position="relative"
+              w="100%"
+              h="90vh"
+              display="flex"
+              alignItems="center"
+              justifyContent="center"
+              bg="blackAlpha.900"
+            >
+              <Image
+                src={selectedImage}
+                alt="Full size image"
+                maxW="100%"
+                maxH="100%"
+                objectFit="contain"
+                transform={`scale(${imageZoom})`}
+                transition="transform 0.3s ease"
+              />
+              
+              {/* Zoom Controls */}
+              <HStack
+                position="absolute"
+                bottom={4}
+                left="50%"
+                transform="translateX(-50%)"
+                bg="blackAlpha.700"
+                color="white"
+                p={3}
+                borderRadius="full"
+                spacing={2}
+                backdropFilter="blur(10px)"
+              >
+                <IconButton
+                  icon={<FaCompress />}
+                  onClick={handleZoomOut}
+                  size="sm"
+                  variant="ghost"
+                  color="white"
+                  _hover={{ bg: "whiteAlpha.200" }}
+                  aria-label="Zoom out"
+                />
+                <Text fontSize="sm" fontWeight="bold" minW="60px" textAlign="center">
+                  {Math.round(imageZoom * 100)}%
+                </Text>
+                <IconButton
+                  icon={<FaExpand />}
+                  onClick={handleZoomIn}
+                  size="sm"
+                  variant="ghost"
+                  color="white"
+                  _hover={{ bg: "whiteAlpha.200" }}
+                  aria-label="Zoom in"
+                />
+                <IconButton
+                  icon={<FaTimes />}
+                  onClick={handleResetZoom}
+                  size="sm"
+                  variant="ghost"
+                  color="white"
+                  _hover={{ bg: "whiteAlpha.200" }}
+                  aria-label="Reset zoom"
+                />
+              </HStack>
+            </Box>
+          </ModalBody>
+        </ModalContent>
+      </Modal>
+
+      {deleteModal && (
+        <Modal isOpen={deleteModal} onClose={() => setDeleteModal(false)}>
+          <ModalOverlay />
+          <ModalContent>
+            <ModalHeader>Delete User</ModalHeader>
+            <ModalCloseButton />
+            <ModalBody>
+              Are you sure you want to delete this user{" "}
+              <b>
+                {selectedUser?.firstName} {selectedUser?.lastName}
+              </b>
+              ?
+            </ModalBody>
+            <ModalFooter>
+              <Button onClick={() => setDeleteModal(false)} mr={3}>
+                Cancel
+              </Button>
+              <Button
+                colorScheme="red"
+                bg="red.500"
+                onClick={() => handleDelete(selectedUser._id)}
+              >
+                Delete
               </Button>
             </ModalFooter>
           </ModalContent>

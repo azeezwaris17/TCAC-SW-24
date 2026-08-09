@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   Box,
   Flex,
@@ -9,11 +9,11 @@ import {
   InputRightElement,
   Input,
   Stack,
-  Select,
   Text,
   IconButton,
   Textarea,
   useToast,
+  Select,
 } from "@chakra-ui/react";
 import { FaCopy } from "react-icons/fa";
 import { MdAttachFile } from "react-icons/md";
@@ -28,16 +28,16 @@ const PaymentForm = ({
   prevFormValues,
 }) => {
   const [formValues, setFormValues] = useState({
-    paymentType: values?.paymentType || "",
-    campType: values?.campType || "",
-    amount: values?.amount || "5000",
-    receipt: values?.receipt || "",
-    paymentNarration: values?.paymentNarration || "",
+    paymentType: "Full Payment",
+    campType: "Camp Only",
+    amount: "7000",
+    receipt: "",
+    paymentNarration: "",
   });
-  const [minimumAmountRequired, setMinimumAmountRequired] = useState(5000); // Default to ₦5000
+  const [minimumAmountRequired, setMinimumAmountRequired] = useState(7000);
   const [formErrors, setFormErrors] = useState({});
   const [blobDetails, setBlobDetails] = useState({});
-  const [loading, setLoading] = useState(false); // Add loading state
+  const [loading, setLoading] = useState(false);
 
   const inputFileRef = useRef(null);
   const toast = useToast();
@@ -48,14 +48,112 @@ const PaymentForm = ({
     bank: "UBA",
   };
 
-  const handlePaymentAmountChange = (paymentType, campType) => {
-    if (campType === "Camp Only") {
-      setMinimumAmountRequired(paymentType === "Full Payment" ? 5000 : 3000);
-    } else if (campType === "Conference Only") {
-      setMinimumAmountRequired(paymentType === "Full Payment" ? 15000 : 5000);
-    } else if (campType === "Camp and Conference") {
-      setMinimumAmountRequired(paymentType === "Full Payment" ? 20000 : 5000);
+  // Calculate amount based on camp type and user category
+  const calculateAmount = (campType, userCategory, paymentType) => {
+    if (userCategory === "Child") {
+      // Children only get Camp Only option with 50% discount
+      return "4000";
     }
+    
+    switch (campType) {
+      case "Camp Only":
+        return "7000"; // Fixed amount
+      case "Conference Only":
+        if (paymentType === "Installmental") {
+          return ""; // User will select from dropdown
+        }
+        return "35000"; // Full payment
+      case "Camp + Conference":
+        if (paymentType === "Installmental") {
+          return ""; // User will select from dropdown
+        }
+        return "42000"; // Full payment for Camp + Conference (₦7,000 + ₦35,000)
+      default:
+        return "7000";
+    }
+  };
+
+  // Calculate minimum amount based on camp type and user category
+  const calculateMinimumAmount = (campType, userCategory, paymentType) => {
+    if (userCategory === "Child") {
+      return 4000;
+    }
+    
+    switch (campType) {
+      case "Camp Only":
+        return 7000; // Fixed amount
+      case "Conference Only":
+        if (paymentType === "Installmental") {
+          return 5000; // Minimum installmental
+        }
+        return 35000; // Full payment
+      case "Camp + Conference":
+        if (paymentType === "Installmental") {
+          return 5000; // Minimum installmental
+        }
+        return 42000; // Full payment for Camp + Conference (₦7,000 + ₦35,000)
+      default:
+        return 7000;
+    }
+  };
+
+  // Get available camp types based on user category
+  const getAvailableCampTypes = (userCategory) => {
+    if (userCategory === "Child") {
+      return [
+        { value: "Camp Only", label: "Camp Only - ₦4,000" }
+      ];
+    }
+    
+    return [
+      { value: "Camp Only", label: "Camp Only - ₦7,000" },
+      { value: "Conference Only", label: "Conference Only - ₦35,000" },
+      { value: "Camp + Conference", label: "Camp + Conference - ₦42,000" }
+    ];
+  };
+
+  useEffect(() => {
+    const newAmount = calculateAmount(formValues.campType, prevFormValues?.userCategory, formValues.paymentType);
+    const newMinimum = calculateMinimumAmount(formValues.campType, prevFormValues?.userCategory, formValues.paymentType);
+    
+    setFormValues(prev => ({
+      ...prev,
+      amount: newAmount
+    }));
+    setMinimumAmountRequired(newMinimum);
+  }, [formValues.campType, formValues.paymentType, prevFormValues?.userCategory]);
+
+  const handleCampTypeChange = (e) => {
+    const newCampType = e.target.value;
+    const newAmount = calculateAmount(newCampType, prevFormValues?.userCategory, formValues.paymentType);
+    const newMinimum = calculateMinimumAmount(newCampType, prevFormValues?.userCategory, formValues.paymentType);
+    
+    setFormValues(prev => ({
+      ...prev,
+      campType: newCampType,
+      amount: newAmount
+    }));
+    setMinimumAmountRequired(newMinimum);
+  };
+
+  const handlePaymentTypeChange = (e) => {
+    const newPaymentType = e.target.value;
+    const newAmount = calculateAmount(formValues.campType, prevFormValues?.userCategory, newPaymentType);
+    const newMinimum = calculateMinimumAmount(formValues.campType, prevFormValues?.userCategory, newPaymentType);
+    
+    setFormValues(prev => ({
+      ...prev,
+      paymentType: newPaymentType,
+      amount: newAmount
+    }));
+    setMinimumAmountRequired(newMinimum);
+  };
+
+  const handleAmountChange = (e) => {
+    setFormValues(prev => ({
+      ...prev,
+      amount: e.target.value
+    }));
   };
 
   const handleCopyToClipboard = (text, label) => {
@@ -89,21 +187,18 @@ const PaymentForm = ({
     e.preventDefault();
     if (!validateForm()) return;
 
-    setLoading(true); // Set loading to true when starting the submission
+    setLoading(true);
 
     try {
       const file = inputFileRef.current.files[0];
       if (!file) {
-        console.error("No file selected");
-        setLoading(false); // Set loading to false if no file is selected
+        setLoading(false);
         return;
       }
 
-      // Create form data
       const formData = new FormData();
       formData.append("file", file);
 
-      // Upload the file using Vercel Blob API
       const response = await fetch("/api/upload", {
         method: "PUT",
         body: formData,
@@ -118,9 +213,7 @@ const PaymentForm = ({
       const { url } = result;
 
       setBlobDetails({ url });
-      console.log("File uploaded successfully:", result);
 
-      // Merge previous values and the current form values
       const mergedValues = {
         role,
         ...values,
@@ -128,8 +221,6 @@ const PaymentForm = ({
         ...formValues,
         receiptUrl: url,
       };
-
-      console.log("merged values:", mergedValues);
 
       onValuesChange(mergedValues);
       onNext(mergedValues);
@@ -141,7 +232,6 @@ const PaymentForm = ({
         isClosable: true,
       });
     } catch (error) {
-      console.error("File upload failed", error);
       toast({
         title: "Error",
         description: "Failed to upload file. Please try again.",
@@ -150,14 +240,19 @@ const PaymentForm = ({
         isClosable: true,
       });
     } finally {
-      setLoading(false); // Set loading to false when submission is complete
+      setLoading(false);
     }
   };
+
+  const handleChooseFileClick = () => {
+    inputFileRef.current.click();
+  };
+
+  const availableCampTypes = getAvailableCampTypes(prevFormValues?.userCategory);
 
   return (
     <form onSubmit={handleFormSubmit}>
       <Box display={"flex"} flexDirection={"column"} gap={6}>
-        {/* Bank Account Details */}
         <Flex
           flexDirection={"column"}
           gap={4}
@@ -233,22 +328,17 @@ const PaymentForm = ({
           </Stack>
         </Flex>
 
-        {/* Payment Form Fields */}
         <FormControl id="paymentType" isInvalid={!!formErrors.paymentType}>
           <FormLabel>Mode of Payment</FormLabel>
           <Select
             value={formValues.paymentType}
-            onChange={(e) => {
-              const value = e.target.value;
-              setFormValues((prev) => {
-                const updatedValues = { ...prev, paymentType: value };
-                handlePaymentAmountChange(value, formValues.campType);
-                return updatedValues;
-              });
-            }}
+            onChange={handlePaymentTypeChange}
+            placeholder="Select payment type"
           >
             <option value="Full Payment">Full Payment</option>
-            <option value="Installmental Payment">Installmental Payment</option>
+            {(formValues.campType === "Conference Only" || formValues.campType === "Camp + Conference") && (
+              <option value="Installmental">Installmental</option>
+            )}
           </Select>
           {formErrors.paymentType && (
             <Text color="red.500" fontSize="sm">
@@ -261,18 +351,14 @@ const PaymentForm = ({
           <FormLabel>What part of the Camp/Conference?</FormLabel>
           <Select
             value={formValues.campType}
-            onChange={(e) => {
-              const value = e.target.value;
-              setFormValues((prev) => {
-                const updatedValues = { ...prev, campType: value };
-                handlePaymentAmountChange(formValues.paymentType, value);
-                return updatedValues;
-              });
-            }}
+            onChange={handleCampTypeChange}
+            placeholder="Select camp type"
           >
-            <option value="Camp Only">Camp Only</option>
-            <option value="Conference Only">Conference Only</option>
-            <option value="Camp and Conference">Camp and Conference</option>
+            {availableCampTypes.map((type) => (
+              <option key={type.value} value={type.value}>
+                {type.label}
+              </option>
+            ))}
           </Select>
           {formErrors.campType && (
             <Text color="red.500" fontSize="sm">
@@ -283,18 +369,25 @@ const PaymentForm = ({
 
         <FormControl id="amount" isInvalid={!!formErrors.amount}>
           <FormLabel>Amount</FormLabel>
-          <Select
-            value={formValues.amount}
-            onChange={(e) =>
-              setFormValues((prev) => ({ ...prev, amount: e.target.value }))
-            }
-          >
-            <option value="5000">₦5,000</option>
-            <option value="10000">₦10,000</option>
-            <option value="15000">₦15,000</option>
-            <option value="20000">₦20,000</option>
-            <option value="25000">₦25,000</option>
-          </Select>
+          {formValues.paymentType === "Installmental" && (formValues.campType === "Conference Only" || formValues.campType === "Camp + Conference") ? (
+            <Select
+              value={formValues.amount}
+              onChange={handleAmountChange}
+              placeholder="Select amount"
+            >
+              <option value="5000">₦5,000</option>
+              <option value="10000">₦10,000</option>
+              <option value="20000">₦20,000</option>
+            </Select>
+          ) : (
+            <Input 
+              value={formValues.amount} 
+              onChange={handleAmountChange}
+              placeholder="Enter amount"
+              readOnly={true}
+              bg="gray.100"
+            />
+          )}
           {formErrors.amount && (
             <Text color="red.500" fontSize="sm">
               {formErrors.amount}
@@ -306,8 +399,17 @@ const PaymentForm = ({
           <FormLabel>Upload Payment Receipt</FormLabel>
           <InputGroup>
             <Input
+              type="text"
+              value={formValues.receipt ? formValues.receipt.name : ""}
+              placeholder="No file chosen"
+              readOnly
+              bg="white"
+              cursor="pointer"
+            />
+            <input
               type="file"
               ref={inputFileRef}
+              style={{ display: "none" }}
               onChange={(e) =>
                 setFormValues((prev) => ({
                   ...prev,
@@ -315,8 +417,16 @@ const PaymentForm = ({
                 }))
               }
             />
-            <InputRightElement>
-              <MdAttachFile onClick={() => inputFileRef.current.click()} />
+            <InputRightElement width="auto" pr={2}>
+              <Button
+                leftIcon={<MdAttachFile />}
+                colorScheme="green"
+                size="sm"
+                onClick={handleChooseFileClick}
+                borderRadius="md"
+              >
+                Choose File
+              </Button>
             </InputRightElement>
           </InputGroup>
           {formErrors.receipt && (
